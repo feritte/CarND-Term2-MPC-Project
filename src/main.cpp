@@ -107,13 +107,15 @@ int main() {
           // transform the given points into vehicule coordinates
           
           for (size_t i = 0; i < ptsx.size(); i++){
-            // Shift Car reference angle to 90 degrees
+            
             double shift_x = ptsx[i]-px;
             double shift_y = ptsy[i]-py;
 
             ptsx[i] = (shift_x *cos(0-psi)-shift_y*sin(0-psi));
             ptsy[i] = (shift_x *sin(0-psi)+shift_y*cos(0-psi));
+
           }
+          
           
       
           
@@ -130,6 +132,9 @@ int main() {
           double cte = polyeval(coeffs, 0);
           
           double epsi = -atan(coeffs[1]);
+          
+          cout<<"cte by polyfit : "<< cte <<endl;
+          cout<<"epsi by polyfit : "<< epsi <<endl;
 
           // consider the actuator delay
           // based on veh. coord. so x,y and psi are all zeros
@@ -148,7 +153,7 @@ int main() {
           auto vars = mpc.Solve(state, coeffs);
           
           
-          double steer_value = vars[0]/(deg2rad(25));
+          double steer_value = vars[0];///(deg2rad(25));
           double throttle_value = vars[1];
           
           
