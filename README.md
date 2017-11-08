@@ -70,6 +70,67 @@ More information is only accessible by people who are already enrolled in Term 2
 of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/f1820894-8322-4bb3-81aa-b26b3c6dcbaf/lessons/b1ff3be0-c904-438e-aad3-2b5379f0e0c3/concepts/1a2255a0-e23c-44cf-8d41-39b8a3c8264a)
 for instructions and the project rubric.
 
+## Explanations
+
+A model predictive control to drive the vehicle in simulator is implemented in this project. A simple kinematic model with a state vector which consists of position of the car, heading and velocity is used to anticipate the future events.
+•	Px the current position of the car in the x-axis 
+•	Py the current position of the car in the y-axis
+•	Psi the current heading angle of the car
+•	V the current velocity of the car
+The algorithm simply does :
+•	Take the current state (considering the delay) as the initial state
+•	Optimization is done by Ipopt and it gives us the control cvector.
+•	Control vector is applied to actuators of the car
+•	Continue from the first step
+
+The simulator gives us these state variables and a vector of waypoints (6 values) each cycle. These waypoints are converted into vehicle coordinate system and then they are used to fit a 3rd order polynomial in order to estimate the road ahead of the car.
+
+To implement a cost function of the controller mainly two types of errors are considered. Such as cross track error (cte) and the orientation error (epsi).
+•	Cte is equal to the fitted polynomial at x = 0. Cte = f(0)
+•	Epsi is equal to arctangent to the derivative of the fitted polynomial function at x = 0. Epsi = arctan(f’(0)).  
+
+# Kinematic Model
+
+The model is given as 
+Px’ = px + v * cos(psi)*dt
+Py’ = py + v*sin(psi)*dt
+Psi’ = psi - v/Lf*delta*dt
+V ‘= v + a*dt
+Steering angle (delta) and the acceleration (a) are the two control inputs of the vehicle that we can manipulate.  
+Cte’ = cte –v*sin(epsi)*dt
+Epsi’ = epsi + v/Lf*delta*dt
+
+# Cost function
+
+The overall cost function is given as
+
+Cost = A*cte^2 + B*espi^2 + C*(v-vref)^2+D*(delta_next)2+E*a_next^2+F*(delta_next-delta)^2+G*(a_next-a)^2
+Here is our main objective is to minimize cte and epsi therefore the highest weights are assigned to them (both are 2000). In order to obtained smooth steering actions the weights related to steering_angle are also chosen as high (D = 5 and F = 200).  The weight of difference of consecutive accelerations is choosen as 10 in order to start slowing down as early as possible in case it is necessary. 
+
+# Number of steps and time interval
+
+The time step length N is chosen as 10. If it is so small, then the controller starts to behave as it is PID. If it is so big, it slows us down and there are no benefits to look so far ahead. The time difference between each steps dt is chosen as 0.1.
+
+# Latency 
+
+100 ms latency taken into account right before initial state of MPC is constructed. t_lat = 0.1
+          // consider the actuator delay
+	          // based on veh. coord. so x,y and psi are all zeros
+	          //state << 0,0,0,v,cte,epsi;
+	          
+	          double x_car = v* t_lat; // cos(0) is 1
+	          double y_car = 0.f;// 0 + v*sin(0)*dt
+	          double psi_car = -v*delta*t_lat/Lf;
+	          double v_car = v + a*t_lat;
+	          double cte_car = cte + v*sin(epsi)*t_lat;
+	          double epsi_car = epsi -v*delta*t_lat/Lf;
+	
+	
+	          Eigen::VectorXd state(6);
+	          state << x_car, y_car, psi_car, v_car, cte_car, epsi_car;  
+	          auto vars = mpc.Solve(state, coeffs);
+
+
 ## Hints!
 
 * You don't have to follow this directory structure, but if you do, your work
